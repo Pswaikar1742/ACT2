@@ -14,157 +14,62 @@ A cyberpunk-themed, real-time quiz and game show application built with React, F
 
 ## 🎮 How to Access Different Panels
 
-> **Quick Access**: All URLs are displayed at the bottom of the Landing Page for easy access during events!
-
 ### 🏠 **Landing Page (Main Entry)**
 - **URL**: `http://localhost:5173/` (or your deployed URL)
-- **Access**: Open in any browser - **NO PASSWORD REQUIRED**
+- **Access**: Open in any browser
 - **Purpose**: Player registration and game entry point
-- **What you'll see**: Email registration form, game status, and quick access links
+- **Quick Access Codes**: URLs shown at bottom of login form
 
-### 👨‍💼 **Admin Dashboard** ⭐ **MOST IMPORTANT**
+### 👨‍💼 **Admin Dashboard**
 - **URL**: `http://localhost:5173/admin`
-- **Password**: `admin2025` (enter when prompted)
-- **Purpose**: **FULL CONTROL** over the entire game experience
-- **Key Features**:
-  - ✅ Start/stop quiz phases
-  - ✅ Manage live game questions and answers
-  - ✅ Award points to finalists during live rounds
-  - ✅ View all participants and their scores
-  - ✅ Reset system between games
-  - ✅ Control what everyone else sees in real-time
+- **Password**: `admin2025`
+- **Purpose**: Complete control over the game flow
+- **Features**:
+  - Start/stop quiz phases
+  - Manage live game questions
+  - Award points to finalists
+  - View all participants and scores
+  - System reset functionality
 
-### 🎤 **Presenter View** (For Main Screen/Projector)
+### 🎤 **Presenter View**
 - **URL**: `http://localhost:5173/presenter`
-- **Access**: Direct URL - **NO PASSWORD REQUIRED**
-- **Purpose**: Professional display for audience to see
-- **Perfect for**: Main conference screen, projector, TV display
-- **Shows**: Welcome screens, live questions, game board, leaderboard
-- **Controlled by**: Admin dashboard (admin controls what appears here)
+- **Access**: Direct URL access (no authentication required)
+- **Purpose**: Professional display for projectors and main screens
+- **Features**:
+  - Welcome screen with branding
+  - Live quiz status
+  - Game board with questions and answers
+  - Real-time leaderboard
+  - Controlled by admin dashboard
 
-### 👥 **Audience View** (For Attendees to Watch)
+### 👥 **Audience View**
 - **URL**: `http://localhost:5173/audience`
-- **Access**: Direct URL - **NO PASSWORD REQUIRED**
-- **Purpose**: Read-only view for audience members who aren't playing
-- **Perfect for**: People who want to follow along without participating
-- **Shows**: Current game status, live leaderboard, active questions
+- **Access**: Direct URL access (no authentication required)
+- **Purpose**: Read-only view for audience members
+- **Features**:
+  - Current game status
+  - Live leaderboard
+  - Question displays (when active)
+  - Real-time updates
 
-### 🏆 **Leaderboard** (Live Rankings)
+### 🏆 **Leaderboard**
 - **URL**: `http://localhost:5173/leaderboard`
-- **Access**: Direct URL - **NO PASSWORD REQUIRED**
-- **Purpose**: Shows current rankings and finalist status
-- **Auto-redirect**: Players are automatically sent here after completing quiz
-- **Features**: Real-time updates, finalist highlighting, score breakdowns
+- **Access**: Direct URL access or automatic redirect after quiz
+- **Purpose**: Show rankings and finalist status
+- **Features**:
+  - Real-time score updates
+  - Finalist highlighting
+  - Quiz and live game score breakdown
 
-### � **Mobile Access URLs (Touch-Optimized)**
-
-| Panel | URL | Best For | Access |
-|-------|-----|----------|--------|
-| **🏠 Landing** | `http://localhost:5173/` | Participants | Public |
-| **👑 Admin** | `http://localhost:5173/admin` | **Event Host** | Password: `admin2025` |
-| **🎤 Presenter** | `http://localhost:5173/presenter` | **Main Screen** | Public |
-| **👥 Audience** | `http://localhost:5173/audience` | Spectators | Public |
-| **🏆 Leaderboard** | `http://localhost:5173/leaderboard` | Results | Public |
-
-### 🔧 **Mobile Optimizations Included:**
-- ✅ Touch-friendly buttons (48px minimum)
-- ✅ Responsive text sizes
-- ✅ Optimized animations for mobile performance
-- ✅ Finger-friendly spacing
-- ✅ Reduced background effects on mobile
-- ✅ Swipe-friendly navigation
-- ✅ Portrait and landscape support
-
-### 📲 **QR Code Setup (Recommended)**
-Create QR codes for easy mobile access:
-- **Main App**: `http://localhost:5173/`
-- **Admin Panel**: `http://localhost:5173/admin`
-- **Presenter View**: `http://localhost:5173/presenter`
-
-### 💡 **Pro Tips for Mobile Events:**
-1. **Share URLs via QR codes** - much easier than typing
-2. **Test on actual phones** before the event
-3. **Use airplane mode test** to simulate poor connectivity
-4. **Keep admin panel on your phone** for mobility during events
-5. **Use presenter view on tablets** for better visibility
-
-## 🚀 **Quick Start for Event Hosts**
-
-### 📱 **MOBILE-FIRST DESIGN** 
-This app is optimized for mobile devices! All interfaces work perfectly on phones and tablets.
-
-### 🎯 **Simultaneous Admin & Presenter Access**
-
-**BEST SETUP for Live Events:**
-
-1. **Primary Control Device (Your Phone/Laptop)**:
-   - Open: `http://localhost:5173/admin`
-   - Password: `admin2025`
-   - Use this to control the entire game
-
-2. **Main Display (Projector/TV/Second Screen)**:
-   - Open: `http://localhost:5173/presenter`
-   - This shows what the audience sees
-   - Controlled automatically by your admin actions
-
-3. **Optional: Audience Device**:
-   - Open: `http://localhost:5173/audience`
-   - Share this URL with people who want to follow along
-
-### 🖥️ **Multi-Screen Setup Options:**
-
-#### **Option 1: Single Device (Mobile/Laptop)**
-- Use browser tabs: Admin in one tab, Presenter in another
-- Switch between tabs to control and monitor
-
-#### **Option 2: Two-Device Setup (Recommended)**
-- **Device 1** (Your control): Admin panel (`/admin`)
-- **Device 2** (Projector/TV): Presenter view (`/presenter`)
-
-#### **Option 3: Professional Setup**
-- **Your Phone**: Admin panel for full mobility
-- **Laptop**: Connected to projector showing presenter view
-- **Backup Device**: Audience view for monitoring
-
-### 📋 **Event Day Workflow:**
-
-1. **Pre-Event Setup** (5 mins before):
-   ```
-   ✅ Open admin panel on your control device
-   ✅ Set up projector with presenter view
-   ✅ Test both screens are working
-   ✅ Have participant registration URL ready
-   ```
-
-2. **Registration Phase** (10-15 mins):
-   ```
-   ✅ Tell attendees: "Go to [your-url]"
-   ✅ Watch registrations in admin panel
-   ✅ Presenter view shows welcome screen
-   ```
-
-3. **Quiz Phase** (5-10 mins):
-   ```
-   ✅ Click "Start Quiz" in admin panel
-   ✅ All players auto-redirected to quiz
-   ✅ Monitor progress in admin panel
-   ✅ Presenter view shows live quiz status
-   ```
-
-4. **Live Game Phase** (15-20 mins):
-   ```
-   ✅ Select finalists in admin panel
-   ✅ Start live game round
-   ✅ Control questions & answers from admin
-   ✅ Award points in real-time
-   ✅ Presenter view shows game board
-   ```
-
-5. **Results Phase**:
-   ```
-   ✅ Final leaderboard auto-displays
-   ✅ Celebrate winners! 🎉
-   ```
+### 📝 **Quiz (Qualifier)**
+- **URL**: `http://localhost:5173/quiz`
+- **Access**: Automatic redirect from landing page when quiz is active
+- **Purpose**: Qualification round for participants
+- **Features**:
+  - Timed questions
+  - Real-time scoring
+  - Progress tracking
+  - Auto-submission
 
 ## 🛠️ Setup Instructions
 
