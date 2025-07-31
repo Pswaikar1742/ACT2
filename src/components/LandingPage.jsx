@@ -1,288 +1,243 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInAnonymously } from 'firebase/auth';
-import { doc, onSnapshot, collection, addDoc } from 'firebase/firestore';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  updateProfile 
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 export default function LandingPage() {
-  const [teamName, setTeamName] = useState('');
-  const [playerName, setPlayerName] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [appState, setAppState] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('checking');
+  const [authMethod, setAuthMethod] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check connection and listen for app state changes
-    const checkConnection = async () => {
-      try {
-        const unsubscribe = onSnapshot(doc(db, 'config', 'appState'), (doc) => {
-          if (doc.exists()) {
-            setAppState(doc.data());
-            setConnectionStatus('connected');
-          } else {
-            setConnectionStatus('no-data');
-          }
-        }, (error) => {
-          console.warn('Firebase connection issue:', error);
-          setConnectionStatus('offline');
-        });
-
-        return () => unsubscribe();
-      } catch (error) {
-        console.warn('Firebase setup issue:', error);
-        setConnectionStatus('offline');
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        navigate('/audience');
       }
-    };
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
-    checkConnection();
-  }, []);
-
-  const handleJoinGame = async (e) => {
-    e.preventDefault();
-    if (!teamName.trim() || !playerName.trim()) {
-      alert('Please enter both team name and your name!');
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    
+    setAuthMethod('google');
     try {
-      if (connectionStatus === 'connected') {
-        // Try Firebase authentication and join game
-        await signInAnonymously(auth);
-        
-        // Add team to database
-        await addDoc(collection(db, 'teams'), {
-          teamName: teamName.trim(),
-          playerName: playerName.trim(),
-          score: 0,
-          joinedAt: new Date(),
-          isActive: true
-        });
-        
-        // Store player info locally
-        localStorage.setItem('teamName', teamName.trim());
-        localStorage.setItem('playerName', playerName.trim());
-        localStorage.setItem('connectionMode', 'firebase');
-        
-        // Navigate to audience view (participant screen)
-        navigate('/audience');
-        
-      } else {
-        // Use demo mode
-        localStorage.setItem('teamName', teamName.trim());
-        localStorage.setItem('playerName', playerName.trim());
-        localStorage.setItem('connectionMode', 'demo');
-        
-        alert('🎮 Joining in Demo Mode!\n\nYour team has been registered for local testing. In a real event, this would sync with the main game system.');
-        navigate('/audience');
-      }
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
       
+      await setDoc(doc(db, 'participants', user.uid), {
+        uid: user.uid,
+        username: user.displayName || 'Google User',
+        email: user.email,
+        score: 0,
+        joinedAt: new Date(),
+        authMethod: 'google'
+      });
+      
+      navigate('/audience');
     } catch (error) {
-      console.error('Failed to join game:', error);
-      
-      // Provide helpful error messages
-      if (error.code === 'auth/operation-not-allowed') {
-        alert('🔧 Game Setup Issue!\n\nThe event organizer needs to enable player authentication. Please contact the event host.');
-      } else {
-        // Fallback to demo mode
-        if (confirm('Connection failed. Would you like to join in demo mode for testing?')) {
-          localStorage.setItem('teamName', teamName.trim());
-          localStorage.setItem('playerName', playerName.trim());
-          localStorage.setItem('connectionMode', 'demo');
-          navigate('/audience');
-        }
-      }
+      console.error('Google Sign-In Error:', error);
+      alert('Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
+      setAuthMethod('');
+    }
+  };
+
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    if (!email || !password || (isRegistering && !username)) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    
+    setLoading(true);
+    setAuthMethod('email');
+    try {
+      let userCredential;
+      
+      if (isRegistering) {
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        await updateProfile(user, { displayName: username });
+        
+        await setDoc(doc(db, 'participants', user.uid), {
+          uid: user.uid,
+          username: username,
+          email: email,
+          score: 0,
+          joinedAt: new Date(),
+          authMethod: 'email'
+        });
+      } else {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        const userDoc = await getDoc(doc(db, 'participants', userCredential.user.uid));
+        if (!userDoc.exists()) {
+          await setDoc(doc(db, 'participants', userCredential.user.uid), {
+            uid: userCredential.user.uid,
+            username: userCredential.user.displayName || email.split('@')[0],
+            email: userCredential.user.email,
+            score: 0,
+            joinedAt: new Date(),
+            authMethod: 'email'
+          });
+        }
+      }
+      
+      navigate('/audience');
+    } catch (error) {
+      console.error('Email Auth Error:', error);
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email already in use. Try signing in instead.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please use at least 6 characters.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please register first.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+      setAuthMethod('');
     }
   };
 
   return (
-    <div className="min-h-screen cyber-bg flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
-      {/* Animated Background Elements - Reduced for Mobile */}
-      <div className="absolute inset-0 pointer-events-none hidden sm:block">
-        <div className="absolute top-10 left-10 w-2 h-2 bg-cyan animate-ping"></div>
-        <div className="absolute top-1/4 right-20 w-1 h-1 bg-neon animate-pulse"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-1.5 h-1.5 bg-purple animate-ping delay-1000"></div>
-        <div className="absolute bottom-20 right-1/3 w-1 h-1 bg-hot-pink animate-pulse delay-500"></div>
-      </div>
-
-      <div className="max-w-2xl w-full px-2 sm:px-0">
-        {/* Main Title with Enhanced Cyber Effect - Mobile Optimized */}
-        <div className="text-center mb-6 sm:mb-8 relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-3xl sm:text-5xl md:text-7xl font-black text-cyan/20 blur-sm animate-pulse">
-              TECH FEUD
-            </div>
-          </div>
-          <h1 className="relative text-3xl sm:text-5xl md:text-7xl font-black holographic mb-3 font-['Orbitron'] tracking-wider">
-            TECH FEUD
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-2">
+            BlackBox AI
           </h1>
-          <div className="h-1 w-20 sm:w-28 mx-auto bg-gradient-to-r from-cyan via-neon to-purple animate-pulse mb-3 sm:mb-4 shadow-lg shadow-cyan/50"></div>
-          <p className="text-base sm:text-lg md:text-xl matrix-text font-mono tracking-[0.15em] sm:tracking-[0.2em] uppercase px-2 mb-2">
-            THE ULTIMATE TECH BATTLE
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Mavericks Club
+          </h2>
+          <div className="h-1 w-32 mx-auto bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full mb-4"></div>
+          <p className="text-xl text-cyan-300 font-semibold">
+            Tech Feud Championship
           </p>
-          <div className="text-sm sm:text-base text-purple font-mono tracking-wider">
-            🚀 Powered by <span className="text-cyan font-bold">BlackBox AI Mavericks Club</span> 🚀
-          </div>
-          <div className="mt-3 flex justify-center items-center space-x-2">
-            <div className="w-2 h-2 bg-cyan rounded-full animate-ping"></div>
-            <div className="w-2 h-2 bg-neon rounded-full animate-ping animation-delay-100"></div>
-            <div className="w-2 h-2 bg-purple rounded-full animate-ping animation-delay-200"></div>
-          </div>
+          <p className="text-sm text-gray-300 mt-2">
+            Individual Competition • Real-time Battles
+          </p>
         </div>
 
-        {/* Connection Status Display - Mobile Optimized */}
-        <div className="quiz-card scan-line mb-4 sm:mb-6 text-center border-2 border-cyan mx-2 sm:mx-0">
-          <div className="flex items-center justify-center mb-3">
-            <div className={`cyber-spinner w-4 sm:w-5 h-4 sm:h-5 mr-2 ${connectionStatus !== 'connected' ? 'opacity-50' : ''}`}></div>
-            <h2 className="text-lg sm:text-xl font-bold matrix-text">GAME STATUS</h2>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 bg-black/50 rounded-lg border border-cyan/30">
-              <span className="font-mono text-cyan text-sm mb-1 sm:mb-0">CONNECTION:</span>
-              <span className={`font-bold uppercase tracking-widest text-sm ${
-                connectionStatus === 'connected' ? 'text-neon' : 
-                connectionStatus === 'checking' ? 'text-yellow-400' : 'text-purple'
-              }`}>
-                {connectionStatus === 'connected' ? '🟢 LIVE GAME' : 
-                 connectionStatus === 'checking' ? '🟡 CHECKING...' : '🟣 DEMO MODE'}
-              </span>
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 font-semibold py-3 px-4 rounded-xl hover:bg-gray-100 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            {loading && authMethod === 'google' ? 'Signing in...' : 'Continue with Google'}
+          </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/30"></div>
             </div>
-            
-            {appState && connectionStatus === 'connected' && (
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-3 bg-black/50 rounded-lg border border-neon/30">
-                <span className="font-mono text-cyan text-sm mb-1 sm:mb-0">GAME PHASE:</span>
-                <span className="font-bold text-neon uppercase tracking-widest text-sm">
-                  {appState.currentPhase || 'WAITING'}
-                </span>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-transparent text-gray-300">OR</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            {isRegistering && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition duration-300"
+                  placeholder="Enter your username"
+                  required={isRegistering}
+                />
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Enhanced Team Registration Form - Mobile Optimized */}
-        <div className="quiz-card border-2 border-cyan/50 relative backdrop-blur-sm bg-black/40 mx-2 sm:mx-0">
-          <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
-            <div className="bg-black px-4 sm:px-6 py-1 sm:py-2 border-2 border-cyan rounded-full shadow-lg shadow-cyan/30">
-              <span className="text-cyan font-mono text-xs sm:text-sm tracking-[0.2em] font-bold">🎮 JOIN THE BATTLE 🎮</span>
-            </div>
-          </div>
-          
-          <form onSubmit={handleJoinGame} className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
+            
             <div>
-              <label className="block text-cyan font-mono text-xs sm:text-sm font-bold mb-2 tracking-[0.15em] uppercase">
-                � Team Name
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Email
               </label>
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-black/60 border-2 border-cyan/30 rounded-lg 
-                           text-white placeholder-cyan/50 font-mono tracking-wider text-base
-                           focus:border-neon focus:outline-none focus:ring-4 focus:ring-neon/20
-                           transition-all duration-300 group-hover:border-cyan/50
-                           shadow-inner"
-                  placeholder="Enter your team name..."
-                  maxLength={30}
-                  required
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="w-2 h-2 bg-neon rounded-full animate-pulse shadow-lg shadow-neon/50"></div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-cyan font-mono text-xs sm:text-sm font-bold mb-2 tracking-[0.15em] uppercase">
-                🧑‍💻 Your Name
-              </label>
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-black/60 border-2 border-cyan/30 rounded-lg 
-                           text-white placeholder-cyan/50 font-mono tracking-wider text-base
-                           focus:border-neon focus:outline-none focus:ring-4 focus:ring-neon/20
-                           transition-all duration-300 group-hover:border-cyan/50
-                           shadow-inner"
-                  placeholder="Enter your name..."
-                  maxLength={25}
-                  required
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="w-2 h-2 bg-purple rounded-full animate-pulse shadow-lg shadow-purple/50"></div>
-                </div>
-              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition duration-300"
+                placeholder="Enter your email"
+                required
+              />
             </div>
             
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition duration-300"
+                placeholder="Enter your password"
+                required
+                minLength="6"
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !teamName.trim() || !playerName.trim()}
-              className="w-full btn-primary py-4 sm:py-5 px-6 sm:px-8 rounded-lg text-lg sm:text-xl font-black
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       transform transition-all duration-300 hover:scale-105 hover:shadow-2xl
-                       relative overflow-hidden group min-h-[48px]"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold py-3 px-4 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan via-neon to-cyan opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <span className="relative z-10">
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="loading-spinner w-5 h-5 mr-3"></div>
-                    <span className="font-mono tracking-[0.1em] text-sm sm:text-base">⚡ JOINING BATTLE...</span>
-                  </div>
-                ) : (
-                  <span className="font-mono tracking-[0.1em] text-sm sm:text-base">
-                    🚀 {connectionStatus === 'connected' ? 'JOIN LIVE GAME' : 'JOIN DEMO GAME'}
-                  </span>
-                )}
-              </span>
+              {loading && authMethod === 'email' 
+                ? 'Processing...' 
+                : isRegistering 
+                  ? 'Create Account & Join' 
+                  : 'Sign In & Join'
+              }
             </button>
           </form>
-          
-          {/* Info Panel */}
-          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-purple/10 rounded-lg border border-purple/30">
-            <div className="text-center">
-              <div className="text-purple font-mono text-xs tracking-wide mb-2">
-                ℹ️ BATTLE INFO
-              </div>
-              <p className="text-purple/80 text-xs leading-relaxed">
-                {connectionStatus === 'connected' ? 
-                  'You\'re joining a live Tech Feud battle! Answer questions, compete with other teams, and climb the leaderboard.' :
-                  'Demo mode active. You can test the game interface and see how Tech Feud works!'
-                }
-              </p>
-            </div>
+
+          <div className="text-center mt-6">
+            <p className="text-gray-300">
+              {isRegistering ? 'Already have an account?' : "Don't have an account?"}
+              <button
+                onClick={() => setIsRegistering(!isRegistering)}
+                className="ml-2 text-cyan-400 hover:text-cyan-300 font-medium transition duration-300"
+              >
+                {isRegistering ? 'Sign In' : 'Register'}
+              </button>
+            </p>
           </div>
         </div>
 
-        {/* Enhanced Footer - Mobile Optimized */}
-        <div className="text-center mt-6 sm:mt-8 px-2">
-          <div className="relative">
-            <p className="text-cyan/80 font-mono text-xs sm:text-sm tracking-[0.1em] mb-2 sm:mb-3">
-              ⚡ BLACKBOX AI MAVERICKS CLUB PRESENTS ⚡
-            </p>
-            <p className="text-purple/60 font-mono text-[10px] sm:text-xs tracking-wider mb-3">
-              TECH FEUD v2.0 | REAL-TIME BATTLE SYSTEM
-            </p>
-            <div className="flex justify-center items-center space-x-4 sm:space-x-6">
-              <div className="w-6 sm:w-10 h-px bg-gradient-to-r from-transparent via-cyan to-transparent"></div>
-              <div className="flex space-x-1 sm:space-x-2">
-                <div className="w-1.5 h-1.5 bg-cyan rounded-full animate-pulse"></div>
-                <div className="w-1.5 h-1.5 bg-neon rounded-full animate-pulse animation-delay-200"></div>
-                <div className="w-1.5 h-1.5 bg-purple rounded-full animate-pulse animation-delay-400"></div>
-              </div>
-              <div className="w-6 sm:w-10 h-px bg-gradient-to-r from-transparent via-cyan to-transparent"></div>
-            </div>
-            <div className="mt-2 sm:mt-3 text-[10px] sm:text-xs font-mono text-cyan/50 tracking-wide">
-              🔮 Neural networks active... Ready for tech combat 🔮
-            </div>
-          </div>
+        <div className="text-center mt-8 text-gray-400 text-sm">
+          <p>🚀 Powered by AI • Real-time Competition</p>
+          <p className="mt-1">Computer Science • AI • Technology • Science</p>
         </div>
       </div>
     </div>
