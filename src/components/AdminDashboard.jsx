@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, onSnapshot, collection, query, orderBy, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  
+  // Check authentication on component mount
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem('adminAuthenticated');
+    const loginTime = localStorage.getItem('adminLoginTime');
+    const currentTime = Date.now();
+    
+    // Check if admin is authenticated and session is less than 2 hours old
+    if (!isAuthenticated || !loginTime || (currentTime - parseInt(loginTime)) > (2 * 60 * 60 * 1000)) {
+      localStorage.removeItem('adminAuthenticated');
+      localStorage.removeItem('adminLoginTime');
+      navigate('/admin-login');
+      return;
+    }
+  }, [navigate]);
 
 const liveGameQuestions = [
   {
@@ -46,10 +65,49 @@ const liveGameQuestions = [
       { text: "DigitalOcean", points: 7 },
       { text: "Heroku", points: 3 }
     ]
+  },
+  {
+    id: 5,
+    question: "Name a popular frontend framework or library",
+    answers: [
+      { text: "React", points: 50 },
+      { text: "Vue.js", points: 25 },
+      { text: "Angular", points: 15 },
+      { text: "Svelte", points: 7 },
+      { text: "jQuery", points: 3 }
+    ]
+  },
+  {
+    id: 6,
+    question: "Name a version control system",
+    answers: [
+      { text: "Git", points: 60 },
+      { text: "SVN", points: 20 },
+      { text: "Mercurial", points: 10 },
+      { text: "Perforce", points: 7 },
+      { text: "Bazaar", points: 3 }
+    ]
   }
 ];
 
-const AdminDashboard = () => {
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  
+  // Check authentication on component mount
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem('adminAuthenticated');
+    const loginTime = localStorage.getItem('adminLoginTime');
+    const currentTime = Date.now();
+    
+    // Check if admin is authenticated and session is less than 2 hours old
+    if (!isAuthenticated || !loginTime || (currentTime - parseInt(loginTime)) > (2 * 60 * 60 * 1000)) {
+      localStorage.removeItem('adminAuthenticated');
+      localStorage.removeItem('adminLoginTime');
+      navigate('/admin-login');
+      return;
+    }
+  }, [navigate]);
+
   const [appState, setAppState] = useState({
     currentPhase: 'waiting',
     presenterScreenView: 'welcome',
@@ -476,5 +534,3 @@ const AdminDashboard = () => {
     </div>
   );
 };
-
-export default AdminDashboard;

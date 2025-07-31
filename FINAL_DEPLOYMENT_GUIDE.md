@@ -35,9 +35,10 @@ npm run preview
 ```
 
 ### 3. Manual Panel Access
-- **Admin Panel**: http://localhost:5173/admin (Password: `admin2025`)
+- **Landing Page (Participants)**: http://localhost:5173/
+- **Admin Login**: http://localhost:5173/admin-login (Password: `admin2025`)
+- **Admin Panel**: http://localhost:5173/admin (Requires authentication)
 - **Presenter View**: http://localhost:5173/presenter (for main screen/projector)
-- **Landing Page**: http://localhost:5173/ (for participants)
 - **Audience View**: http://localhost:5173/audience (for spectators)
 - **Leaderboard**: http://localhost:5173/leaderboard (for results display)
 

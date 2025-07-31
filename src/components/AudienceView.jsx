@@ -135,29 +135,33 @@ const AudienceView = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 p-4">
+    <div className="min-h-screen cyber-bg p-2 sm:p-4">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            <span className="text-primary-400">Tech Feud</span>
+        {/* Header with Branding */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black holographic mb-2 font-['Orbitron'] tracking-wider">
+            TECH FEUD
           </h1>
-          <p className="text-gray-400">
+          <div className="h-1 w-16 sm:w-20 mx-auto bg-gradient-to-r from-cyan via-neon to-purple animate-pulse mb-3 shadow-lg shadow-cyan/50"></div>
+          <p className="text-purple font-mono text-xs sm:text-sm tracking-wider mb-1">
+            🚀 Blackbox AI Mavericks Club 🚀
+          </p>
+          <p className="text-cyan/80 font-mono text-xs tracking-wide">
             Audience View {localStorage.getItem('localMode') === 'true' && '(Demo Mode)'}
           </p>
         </div>
 
         {/* Status Card */}
-        <div className="quiz-card mb-6">
+        <div className="quiz-card mb-4 sm:mb-6 border-2 border-cyan/50">
           <div className="text-center">
-            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${
-              appState.currentPhase === 'quiz' ? 'bg-green-600' :
-              appState.currentPhase === 'liveGame' ? 'bg-blue-600' :
-              'bg-yellow-600'
+            <div className={`w-12 sm:w-16 h-12 sm:h-16 mx-auto rounded-full flex items-center justify-center mb-3 sm:mb-4 ${
+              appState.currentPhase === 'quiz' ? 'bg-neon/20 border-2 border-neon' :
+              appState.currentPhase === 'liveGame' ? 'bg-cyan/20 border-2 border-cyan' :
+              'bg-purple/20 border-2 border-purple'
             }`}>
-              {appState.currentPhase === 'quiz' && <span className="text-2xl">📝</span>}
-              {appState.currentPhase === 'liveGame' && <span className="text-2xl">🎮</span>}
-              {appState.currentPhase === 'waiting' && <span className="text-2xl">⏳</span>}
+              {appState.currentPhase === 'quiz' && <span className="text-xl sm:text-2xl">📝</span>}
+              {appState.currentPhase === 'liveGame' && <span className="text-xl sm:text-2xl">🎮</span>}
+              {appState.currentPhase === 'waiting' && <span className="text-xl sm:text-2xl">⏳</span>}
             </div>
             
             <h2 className="text-xl font-bold text-white mb-2">
